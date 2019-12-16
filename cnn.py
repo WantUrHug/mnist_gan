@@ -4,8 +4,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader, TensorDataset
-
-import input_data
+from torchvision import datasets, transforms
 
 class Net(nn.Module):
 
@@ -50,48 +49,38 @@ net = Net()
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr = 0.001, momentum = 0.9)
 
-train_data, train_label = input_data.train_data_reader()
-#print("Train data shape is ", train_data.shape)
-#print("Train label shape is ", train_label.shape)
-#print(train_data[0])
-
-#train_dataset = MyDataset(train_data, train_label)
-X = torch.from_numpy(train_data).float()
-Y = torch.from_numpy(train_label).float()
-train_dataset = TensorDataset(X, Y)
-
+train_dataset = datasets.MNIST(root='./data/',
+                               train=True,
+                               transform=transforms.ToTensor(),
+                               download=True)
 train_loader = DataLoader(dataset = train_dataset,
 						batch_size = 4,
 						shuffle = True)
 						#num_workers = 2)
 
 for epoch in range(2):
-	running_loss = 0.0
-	for i, data in enumerate(train_loader, 0):
-		inputs, labels = data
-		inputs = Variable(inputs)
-		labels = Variable(labels)
 
-		#print(inputs)
-		print(inputs.size())
-		print(labels.size())
+	running_loss = 0.0
+	correct = 0.0
+
+	for i, data in enumerate(train_loader, 0):
+		
 		optimizer.zero_grad()
 
+		inputs, labels = data
 		outputs = net(inputs)
-		outputs = outputs.squeeze()
-		print(outputs.size())
-		
-		#print(outputs)
-		#print(outputs.size())
-		print(labels.size())
-		labels.squeeze()
-		loss = criterion(outputs, labels.long())
+
+		loss = criterion(outputs, labels)
 		loss.backward()
 		optimizer.step()
 
 		running_loss += loss.item()
+		pred = outputs.max(1, keepdim = True)[1]
+		correct += pred.eq(labels.view_as(pred)).sum().item()/4#batch_size = 4
+
 		if i%2000 == 1999:
-			print('[%d, %5d] loss: %.3f' %
-				(epoch + 1, i + 1, running_loss / 2000))
+			print('[%d, %5d] loss: %.3f acc: %.2f%%' %(epoch + 1, i + 1, running_loss / 2000, correct / 20))
 			running_loss = 0.0
+			correct = 0.0
+
 print("Finished training.")
