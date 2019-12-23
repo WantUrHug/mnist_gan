@@ -6,6 +6,7 @@ from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader, TensorDataset
 from torchvision import datasets, transforms
 import input_data
+import matplotlib.pyplot as plt
 
 class Net(nn.Module):
 
@@ -45,20 +46,42 @@ class MyDataset(Dataset):
 	def __len__(self):
 		return len(self.labels)
 
+validation_size = 0.1
+test_size = 0.2
+total_data, total_label = input_data.train_data_reader()
+datasize = len(total_data)
+print("数据集中一共有%d组数据."%datasize)
+
+train_size = int(datasize*(1 - validation_size - test_size))
+print("训练数据的数量为%d"%train_num)
+validation_size = int(datasize*validation_size)
+print("验证数据的数量为%d"%validation_size)
+
+train_X = torch.from_numpy(total_data[:train_size]).float()
+train_Y = torch.from_numpy(total_label[:train_size]).float()
+train_dataset = TensorDataset(train_X, train_Y)
+train_loader = DataLoader(dataset = train_dataset, batch_size = 4, shuffle = True)
+
+validation_X = torch.from_numpy(total_data[train_size:train_size + validation_size]).float()
+validation_Y = torch.from_numpy(total_label[train_size:train_size + validation_size]).float()
+validation_dataset = TensorDataset(validation_X, validation_Y)
+validation_loader = DataLoader(dataset = train_dataset, batch_size = 4, shuffle = True)
+
 net = Net()
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr = 0.001, momentum = 0.9)
 
-train_data, train_label = input_data.train_data_reader()
 
-X = torch.from_numpy(train_data).float()
-Y = torch.from_numpy(train_label).float()
-train_dataset = TensorDataset(X, Y)
 
-train_loader = DataLoader(dataset = train_dataset,
-						batch_size = 4,
-						shuffle = True)
+
+
+
+history = {}
+history["train_loss"] = []
+history["train_acc"] = []
+history["validation_loss"] = []
+history["validation_acc"] = []
 
 for epoch in range(2):
 
